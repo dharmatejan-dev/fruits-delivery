@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class InventoryService:
     """
     Transaction-safe concurrency manager for stock deduction, restoration,
-    and administrative inventory adjustments using PostgreSQL SELECT FOR UPDATE locks.
+    and administrative inventory adjustments using MySQL SELECT FOR UPDATE locks.
     """
 
     @classmethod

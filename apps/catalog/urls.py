@@ -5,6 +5,7 @@ from .views import (
     ProductViewSet,
     ProductVariantViewSet,
     ProductImageViewSet,
+    ProductImageUploadView,
 )
 
 router = DefaultRouter()
@@ -14,5 +15,6 @@ router.register(r'variants', ProductVariantViewSet, basename='product-variant')
 router.register(r'images', ProductImageViewSet, basename='product-image')
 
 urlpatterns = [
+    path('images/upload/', ProductImageUploadView.as_view(), name='product-image-upload'),
     path('', include(router.urls)),
 ]

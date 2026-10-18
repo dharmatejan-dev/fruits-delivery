@@ -95,10 +95,16 @@ WSGI_APPLICATION = 'orchard_core.wsgi.application'
 # Custom User Model
 AUTH_USER_MODEL = 'authentication.CustomUser'
 
-# Database configuration
+# MySQL database configuration. SQLite can still be selected explicitly for
+# isolated development with DATABASE_URL=sqlite:///db.sqlite3.
 DATABASES = {
-    'default': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR / "db.sqlite3"}')
+    'default': env.db(
+        'DATABASE_URL',
+        default='mysql://root:password@127.0.0.1:3306/orchard_harvest_db',
+    )
 }
+if DATABASES['default']['ENGINE'] == 'django.db.backends.mysql':
+    DATABASES['default'].setdefault('OPTIONS', {})['charset'] = 'utf8mb4'
 
 
 # Password validation

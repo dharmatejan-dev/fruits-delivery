@@ -1,6 +1,13 @@
+import uuid
+
+from django.conf import settings
+from django.core.files.storage import default_storage
 from django.db.models import Count, Q, Min
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, serializers
+from rest_framework.exceptions import ServiceUnavailable
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from apps.common.responses import success_response
 from apps.common.pagination import StandardPageNumberPagination
@@ -15,6 +22,46 @@ from apps.catalog.serializers import (
     ProductImageSerializer,
 )
 from apps.inventory.models import InventoryRecord
+
+
+class ProductImageUploadSerializer(serializers.Serializer):
+    image = serializers.ImageField()
+
+    def validate_image(self, image):
+        if image.size > 10 * 1024 * 1024:
+            raise serializers.ValidationError('Image must be 10 MB or smaller.')
+        return image
+
+
+class ProductImageUploadView(APIView):
+    """Upload a selected product photo to Cloudinary and return its CDN URL."""
+    permission_classes = [IsAdminUser]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        serializer = ProductImageUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        credentials = settings.CLOUDINARY_STORAGE
+        if not all(credentials.get(key) for key in ('CLOUD_NAME', 'API_KEY', 'API_SECRET')):
+            raise ServiceUnavailable(
+                'Cloudinary is not configured. Add its cloud name, API key, and API secret to the backend environment.'
+            )
+
+        image = serializer.validated_data['image']
+        safe_name = image.name.replace(chr(92), '/').rsplit('/', 1)[-1]
+        storage_name = f'catalog/products/{uuid.uuid4().hex}/{safe_name}'
+        try:
+            saved_name = default_storage.save(storage_name, image)
+            image_url = default_storage.url(saved_name)
+        except Exception as exc:
+            raise ServiceUnavailable('Cloudinary could not store this product image.') from exc
+
+        return success_response(
+            data={'image_url': image_url},
+            message='Product image uploaded to Cloudinary.',
+            status_code=status.HTTP_201_CREATED,
+        )
 
 
 class CategoryViewSet(viewsets.ModelViewSet):

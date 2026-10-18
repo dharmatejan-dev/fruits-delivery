@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from apps.common.exceptions import custom_exception_handler
 from apps.common.pagination import StandardPageNumberPagination
-import psycopg
+import MySQLdb
 
 
 @pytest.fixture
@@ -77,6 +77,6 @@ def test_custom_exception_handler_validation_error():
     ]
 
 
-def test_postgresql_driver_availability():
-    """Verify psycopg driver is importable and available for PostgreSQL connections."""
-    assert psycopg.__version__ is not None
+def test_mysql_driver_availability():
+    """Verify the MySQL driver is importable and available for Django."""
+    assert MySQLdb.version_info is not None

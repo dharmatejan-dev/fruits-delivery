@@ -76,9 +76,16 @@ class ClaimPhotoSerializer(serializers.ModelSerializer):
         fields = ['id', 'image_url', 'uploaded_at']
 
     def get_image_url(self, obj):
-        request = self.context.get('request')
-        if obj.image and request:
-            return request.build_absolute_uri(obj.image.url)
+        if obj.image:
+            url = obj.image.url
+            # Cloudinary transformations keep claim evidence thumbnails light
+            # when the admin opens the image carousel.
+            marker = '/image/upload/'
+            if 'res.cloudinary.com' in url and marker in url:
+                prefix, suffix = url.split(marker, 1)
+                if suffix.startswith('v'):
+                    url = f'{prefix}{marker}f_auto,q_auto,w_1200,c_limit/{suffix}'
+            return url
         return None
 
 
