@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
             name='PushDevice',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('registration_token', models.CharField(max_length=4096, unique=True)),
+                ('registration_token', models.CharField(max_length=512, unique=True)),
                 ('platform', models.CharField(choices=[('ANDROID', 'Android'), ('IOS', 'iOS')], max_length=10)),
                 ('app_id', models.CharField(blank=True, max_length=80)),
                 ('active', models.BooleanField(db_index=True, default=True)),

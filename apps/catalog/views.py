@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from django.db.models import Count, Q, Min
 from rest_framework import viewsets, permissions, status, serializers
-from rest_framework.exceptions import ServiceUnavailable
+from rest_framework.exceptions import APIException
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.views import APIView
@@ -22,6 +22,12 @@ from apps.catalog.serializers import (
     ProductImageSerializer,
 )
 from apps.inventory.models import InventoryRecord
+
+
+class ServiceUnavailable(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = 'The image storage service is temporarily unavailable.'
+    default_code = 'service_unavailable'
 
 
 class ProductImageUploadSerializer(serializers.Serializer):

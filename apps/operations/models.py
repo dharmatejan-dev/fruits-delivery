@@ -235,7 +235,10 @@ class PushDevice(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='push_devices'
     )
-    registration_token = models.CharField(max_length=4096, unique=True)
+    # Unique indexes on utf8mb4 columns must fit MySQL's 3072-byte key limit.
+    # 512 characters keeps the full token indexed while allowing ample room
+    # for current FCM registration tokens.
+    registration_token = models.CharField(max_length=512, unique=True)
     platform = models.CharField(max_length=10, choices=Platform.choices)
     app_id = models.CharField(max_length=80, blank=True)
     active = models.BooleanField(default=True, db_index=True)
