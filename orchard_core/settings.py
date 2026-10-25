@@ -26,6 +26,7 @@ if env_file.exists():
 
 SECRET_KEY = env('SECRET_KEY', default='orchard-harvest-insecure-dev-key-change-in-production')
 DEBUG = env('DEBUG')
+APP_ENV = env('APP_ENV', default='development' if DEBUG else 'production').strip().lower()
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['127.0.0.1', 'localhost', '*'])
 
 # Application definition
@@ -196,6 +197,15 @@ SPECTACULAR_SETTINGS = {
 }
 
 # Third Party Integrations Configuration
+CUSTOMER_OTP_PROVIDER = env(
+    'CUSTOMER_OTP_PROVIDER',
+    default='development_mock' if APP_ENV == 'development' else 'msg91',
+).strip().lower()
+OTP_COM_SERVER_API_KEY = env('OTP_COM_SERVER_API_KEY', default='')
+OTP_COM_API_BASE_URL = 'https://api.otp.com/api/v1'
+OTP_COM_ENVIRONMENT = env('OTP_COM_ENVIRONMENT', default='test').strip().lower()
+OTP_COM_CODE_LENGTH = env.int('OTP_COM_CODE_LENGTH', default=6)
+OTP_MOCK_CODE = env('OTP_MOCK_CODE', default='1234')
 MSG91_AUTH_KEY = env('MSG91_AUTH_KEY', default='')
 MSG91_OTP_TEMPLATE_ID = env('MSG91_OTP_TEMPLATE_ID', default='')
 MSG91_SENDER_ID = env('MSG91_SENDER_ID', default='ORCHRD')

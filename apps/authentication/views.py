@@ -11,7 +11,7 @@ from .serializers import (
     UserProfileSerializer,
     UserAddressSerializer,
 )
-from .services.msg91 import MSG91OTPService
+from .services.otp import CustomerOTPService
 from .tokens import get_tokens_for_user
 from .permissions import IsCustomer, IsAddressOwner
 
@@ -26,14 +26,14 @@ def get_client_ip(request):
 
 class CustomerOTPRequestView(APIView):
     """
-    Step 1 of Customer Authentication: Request OTP via MSG91 for an Indian mobile number.
+    Step 1 of Customer Authentication: Request OTP from the configured backend provider.
     Rate limited to 3 requests per 10 minutes with a 60-second resend cooldown.
     """
     permission_classes = [permissions.AllowAny]
 
     @extend_schema(
         summary="Request Phone OTP",
-        description="Generates a 6-digit OTP and delivers it via MSG91 to the provided +91 mobile number.",
+        description="Requests a customer OTP from the configured backend provider for a +91 mobile number.",
         request=OTPRequestSerializer,
         responses={200: OpenApiResponse(description="OTP sent successfully")}
     )
@@ -44,7 +44,7 @@ class CustomerOTPRequestView(APIView):
         phone_number = serializer.validated_data['phone_number']
         ip_address = get_client_ip(request)
 
-        result = MSG91OTPService.request_otp(phone_number=phone_number, ip_address=ip_address)
+        result = CustomerOTPService.request_otp(phone_number=phone_number, ip_address=ip_address)
         return success_response(
             data=result,
             message="OTP dispatched successfully to your mobile number."
@@ -59,7 +59,7 @@ class CustomerOTPVerifyView(APIView):
 
     @extend_schema(
         summary="Verify OTP & Issue JWT",
-        description="Verifies the 6-digit OTP and authenticates the customer, returning access and refresh JWT tokens.",
+        description="Verifies the configured provider's OTP and authenticates the customer, returning access and refresh JWT tokens.",
         request=OTPVerifySerializer,
         responses={200: OpenApiResponse(description="Authentication successful")}
     )
@@ -70,8 +70,8 @@ class CustomerOTPVerifyView(APIView):
         phone_number = serializer.validated_data['phone_number']
         otp = serializer.validated_data['otp']
 
-        # Verify against hashed OTP record
-        MSG91OTPService.verify_otp(phone_number=phone_number, otp_input=otp)
+        # Verify through the provider recorded for this OTP request.
+        CustomerOTPService.verify_otp(phone_number=phone_number, otp_input=otp)
 
         # Lookup or create customer account
         user = CustomUser.objects.filter(phone_number=phone_number).first()

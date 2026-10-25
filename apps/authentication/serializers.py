@@ -2,7 +2,7 @@ import re
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import CustomUser, UserAddress
-from .services.msg91 import normalize_indian_phone
+from .services.otp import normalize_indian_phone
 
 PINCODE_REGEX = re.compile(r'^\d{6}$')
 
@@ -21,7 +21,7 @@ class OTPRequestSerializer(serializers.Serializer):
 class OTPVerifySerializer(serializers.Serializer):
     """Payload for verifying an OTP and issuing JWT tokens."""
     phone_number = serializers.CharField(max_length=15)
-    otp = serializers.CharField(min_length=4, max_length=6)
+    otp = serializers.RegexField(regex=r'^\d{4,6}$', min_length=4, max_length=6)
 
     def validate_phone_number(self, value):
         return normalize_indian_phone(value)

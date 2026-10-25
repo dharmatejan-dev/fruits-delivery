@@ -5,6 +5,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
+from django.test import override_settings
 import jwt
 from apps.authentication.models import CustomUser, OTPRecord, UserAddress
 from apps.authentication.services.msg91 import MSG91OTPService
@@ -52,6 +53,12 @@ def test_admin(db):
 # -----------------------------------------------------------------------------
 
 @pytest.mark.django_db
+@override_settings(
+    DEBUG=True,
+    APP_ENV='development',
+    CUSTOMER_OTP_PROVIDER='development_mock',
+    OTP_MOCK_CODE='1234',
+)
 def test_otp_request_valid_indian_number(api_client):
     url = reverse('customer-otp-request')
     response = api_client.post(url, {"phone_number": "9876543210"}, format='json')
@@ -81,6 +88,12 @@ def test_otp_request_invalid_number_format(api_client):
 
 
 @pytest.mark.django_db
+@override_settings(
+    DEBUG=True,
+    APP_ENV='development',
+    CUSTOMER_OTP_PROVIDER='development_mock',
+    OTP_MOCK_CODE='1234',
+)
 def test_otp_request_resend_cooldown(api_client):
     url = reverse('customer-otp-request')
     phone = "9876543211"
@@ -96,6 +109,12 @@ def test_otp_request_resend_cooldown(api_client):
 
 
 @pytest.mark.django_db
+@override_settings(
+    DEBUG=True,
+    APP_ENV='development',
+    CUSTOMER_OTP_PROVIDER='development_mock',
+    OTP_MOCK_CODE='1234',
+)
 def test_otp_request_rate_limiting_max_three_in_ten_minutes(api_client):
     phone = "+919876543212"
     now = timezone.now()
@@ -121,15 +140,20 @@ def test_otp_request_rate_limiting_max_three_in_ten_minutes(api_client):
 # -----------------------------------------------------------------------------
 
 @pytest.mark.django_db
+@override_settings(
+    DEBUG=True,
+    APP_ENV='development',
+    CUSTOMER_OTP_PROVIDER='development_mock',
+    OTP_MOCK_CODE='1234',
+)
 def test_otp_verify_new_customer(api_client):
     phone = "+919876543213"
 
     # Request OTP
-    api_client.post(reverse('customer-otp-request'), {"phone_number": phone}, format='json')
-    record = OTPRecord.objects.filter(phone_number=phone).latest('created_at')
-
-    # In sandbox mode, session_id stores the plaintext OTP: "sandbox_session_<otp>"
-    otp = record.session_id.replace("sandbox_session_", "")
+    request_response = api_client.post(
+        reverse('customer-otp-request'), {"phone_number": phone}, format='json'
+    )
+    otp = request_response.json()['data']['debug_otp']
 
     # Verify OTP
     verify_url = reverse('customer-otp-verify')
@@ -151,12 +175,19 @@ def test_otp_verify_new_customer(api_client):
 
 
 @pytest.mark.django_db
+@override_settings(
+    DEBUG=True,
+    APP_ENV='development',
+    CUSTOMER_OTP_PROVIDER='development_mock',
+    OTP_MOCK_CODE='1234',
+)
 def test_otp_verify_existing_customer(api_client, test_customer):
     phone = test_customer.phone_number
 
-    api_client.post(reverse('customer-otp-request'), {"phone_number": phone}, format='json')
-    record = OTPRecord.objects.filter(phone_number=phone).latest('created_at')
-    otp = record.session_id.replace("sandbox_session_", "")
+    request_response = api_client.post(
+        reverse('customer-otp-request'), {"phone_number": phone}, format='json'
+    )
+    otp = request_response.json()['data']['debug_otp']
 
     verify_url = reverse('customer-otp-verify')
     response = api_client.post(verify_url, {"phone_number": phone, "otp": otp}, format='json')
@@ -169,6 +200,12 @@ def test_otp_verify_existing_customer(api_client, test_customer):
 
 
 @pytest.mark.django_db
+@override_settings(
+    DEBUG=True,
+    APP_ENV='development',
+    CUSTOMER_OTP_PROVIDER='development_mock',
+    OTP_MOCK_CODE='1234',
+)
 def test_otp_verify_wrong_code_and_attempt_limit(api_client):
     phone = "+919876543214"
     api_client.post(reverse('customer-otp-request'), {"phone_number": phone}, format='json')

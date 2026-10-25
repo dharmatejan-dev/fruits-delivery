@@ -123,6 +123,15 @@ class OTPRecord(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     phone_number = models.CharField(max_length=15, db_index=True)
     otp_hash = models.CharField(max_length=255)
+    provider = models.CharField(
+        max_length=20,
+        choices=[
+            ('development_mock', 'Development Mock'),
+            ('otp_com_test', 'OTP.com Test'),
+            ('msg91', 'MSG91'),
+        ],
+        default='msg91',
+    )
     session_id = models.CharField(max_length=100, blank=True)
     attempts_count = models.SmallIntegerField(default=0)
     is_verified = models.BooleanField(default=False)
