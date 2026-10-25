@@ -15,7 +15,6 @@ from .services.otp import CustomerOTPService
 from .tokens import get_tokens_for_user
 from .permissions import IsCustomer, IsAddressOwner
 
-
 def get_client_ip(request):
     """Utility to retrieve client IP address for audit and rate limiting."""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')

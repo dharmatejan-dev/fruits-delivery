@@ -199,7 +199,11 @@ SPECTACULAR_SETTINGS = {
 # Third Party Integrations Configuration
 CUSTOMER_OTP_PROVIDER = env(
     'CUSTOMER_OTP_PROVIDER',
-    default='development_mock' if APP_ENV == 'development' else 'msg91',
+    default=(
+        'development_mock' if APP_ENV == 'development'
+        else 'otp_com_live' if APP_ENV == 'production'
+        else 'otp_com_test'
+    ),
 ).strip().lower()
 OTP_COM_SERVER_API_KEY = env('OTP_COM_SERVER_API_KEY', default='')
 OTP_COM_API_BASE_URL = 'https://api.otp.com/api/v1'

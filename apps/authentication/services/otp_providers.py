@@ -41,19 +41,28 @@ class DevelopmentMockProvider:
         return check_password(code, otp_hash)
 
 
-class OTPComTestProvider:
-    name = 'otp_com_test'
+class OTPComProvider:
     uses_remote_verification = True
+    environment = None
+    name = None
+    key_prefix = None
 
     def __init__(self):
         api_key = settings.OTP_COM_SERVER_API_KEY
-        if settings.APP_ENV == 'production':
+        if self.environment == 'test' and settings.APP_ENV == 'production':
             raise OTPProviderUnavailable(
                 'OTP.com Test keys cannot be used in production.'
             )
-        if settings.OTP_COM_ENVIRONMENT != 'test' or not api_key.startswith('otp_test_'):
+        if self.environment == 'live' and settings.APP_ENV != 'production':
             raise OTPProviderUnavailable(
-                'OTP.com Test requires a test-environment Server API key.'
+                'OTP.com Live keys can only be used when APP_ENV=production.'
+            )
+        if (
+            settings.OTP_COM_ENVIRONMENT != self.environment
+            or not api_key.startswith(self.key_prefix)
+        ):
+            raise OTPProviderUnavailable(
+                f'OTP.com {self.environment.title()} requires a matching Server API key.'
             )
         if not 4 <= settings.OTP_COM_CODE_LENGTH <= 6:
             raise OTPProviderUnavailable('OTP.com code length configuration is invalid.')
@@ -109,6 +118,18 @@ class OTPComTestProvider:
             logger.warning('OTP.com verification response omitted the match result.')
             raise OTPProviderUnavailable()
         return matched
+
+
+class OTPComTestProvider(OTPComProvider):
+    name = 'otp_com_test'
+    environment = 'test'
+    key_prefix = 'otp_test_'
+
+
+class OTPComLiveProvider(OTPComProvider):
+    name = 'otp_com_live'
+    environment = 'live'
+    key_prefix = 'otp_live_'
 
 
 class MSG91ProductionProvider:
@@ -167,6 +188,7 @@ def get_otp_provider(name=None):
     providers = {
         'development_mock': DevelopmentMockProvider,
         'otp_com_test': OTPComTestProvider,
+        'otp_com_live': OTPComLiveProvider,
         'msg91': MSG91ProductionProvider,
     }
     provider_class = providers.get(provider_name)
