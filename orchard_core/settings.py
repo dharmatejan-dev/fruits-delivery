@@ -201,10 +201,14 @@ CUSTOMER_OTP_PROVIDER = env(
     'CUSTOMER_OTP_PROVIDER',
     default=(
         'development_mock' if APP_ENV == 'development'
-        else 'otp_com_live' if APP_ENV == 'production'
-        else 'otp_com_test'
+        else 'twofactor'
     ),
 ).strip().lower()
+TWOFACTOR_API_KEY = env('TWOFACTOR_API_KEY', default='').strip()
+TWOFACTOR_API_BASE_URL = env(
+    'TWOFACTOR_API_BASE_URL',
+    default='https://2factor.in/API/V1',
+).rstrip('/')
 OTP_COM_SERVER_API_KEY = env('OTP_COM_SERVER_API_KEY', default='')
 OTP_COM_API_BASE_URL = 'https://api.otp.com/api/v1'
 OTP_COM_ENVIRONMENT = env('OTP_COM_ENVIRONMENT', default='test').strip().lower()

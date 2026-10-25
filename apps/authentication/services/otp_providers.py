@@ -1,4 +1,5 @@
 import logging
+import re
 
 import requests
 from django.conf import settings
@@ -132,6 +133,82 @@ class OTPComLiveProvider(OTPComProvider):
     key_prefix = 'otp_live_'
 
 
+class TwoFactorProvider:
+    """Server-side OTP generation and verification through 2Factor."""
+    name = 'twofactor'
+    code_length = 6
+    uses_remote_verification = True
+
+    def __init__(self):
+        self.api_key = settings.TWOFACTOR_API_KEY.strip()
+        if not self.api_key:
+            raise OTPProviderUnavailable('2Factor API key is not configured.')
+        self.base_url = settings.TWOFACTOR_API_BASE_URL.rstrip('/')
+
+    def generate_code(self):
+        # 2Factor creates the code and retains it for verification by session ID.
+        return None
+
+    def _get(self, path):
+        try:
+            response = requests.get(
+                f'{self.base_url}/{self.api_key}/{path}',
+                timeout=(3.05, 10),
+            )
+        except requests.RequestException as exc:
+            # Do not log the URL: the 2Factor API key is part of its path.
+            logger.warning('2Factor request failed (%s).', type(exc).__name__)
+            raise OTPProviderUnavailable() from None
+
+        if response.status_code >= 400:
+            logger.warning('2Factor returned HTTP %s.', response.status_code)
+            raise OTPProviderUnavailable()
+        try:
+            result = response.json()
+        except ValueError as exc:
+            logger.warning('2Factor returned a non-JSON response.')
+            raise OTPProviderUnavailable() from exc
+        if not isinstance(result, dict):
+            raise OTPProviderUnavailable()
+        return result
+
+    def send(self, phone_number, client_ip=None, code=None):
+        # 2Factor's India AUTOGEN endpoint takes a 10-digit mobile number.
+        local_number = phone_number.removeprefix('+91')
+        result = self._get(f'SMS/{local_number}/AUTOGEN')
+        session_id = result.get('Details')
+        if (
+            str(result.get('Status', '')).casefold() != 'success'
+            or not isinstance(session_id, str)
+            or not re.fullmatch(r'[A-Za-z0-9-]{1,100}', session_id)
+        ):
+            logger.warning('2Factor did not accept the OTP request.')
+            raise OTPProviderUnavailable()
+        return {'session_id': session_id, 'debug_otp': None}
+
+    def verify(self, session_id, code, otp_hash=None):
+        if (
+            not re.fullmatch(r'[A-Za-z0-9-]{1,100}', session_id or '')
+            or not code.isdigit()
+            or len(code) != self.code_length
+        ):
+            return False
+        result = self._get(f'SMS/VERIFY/{session_id}/{code}')
+        details = str(result.get('Details', '')).casefold()
+        if (
+            str(result.get('Status', '')).casefold() == 'success'
+            and 'otp matched' in details
+        ):
+            return True
+        if str(result.get('Status', '')).casefold() != 'success':
+            if any(term in details for term in ('api key', 'balance', 'service unavailable', 'server error')):
+                logger.warning('2Factor rejected OTP verification due to provider configuration or service status.')
+                raise OTPProviderUnavailable()
+            return False
+        logger.warning('2Factor returned an unexpected OTP verification result.')
+        raise OTPProviderUnavailable()
+
+
 class MSG91ProductionProvider:
     name = 'msg91'
     code_length = 6
@@ -189,6 +266,7 @@ def get_otp_provider(name=None):
         'development_mock': DevelopmentMockProvider,
         'otp_com_test': OTPComTestProvider,
         'otp_com_live': OTPComLiveProvider,
+        'twofactor': TwoFactorProvider,
         'msg91': MSG91ProductionProvider,
     }
     provider_class = providers.get(provider_name)

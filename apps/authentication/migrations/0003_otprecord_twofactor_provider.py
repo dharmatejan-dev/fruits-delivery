@@ -1,0 +1,26 @@
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('authentication', '0002_otprecord_provider'),
+    ]
+
+    operations = [
+        migrations.AlterField(
+            model_name='otprecord',
+            name='provider',
+            field=models.CharField(
+                choices=[
+                    ('development_mock', 'Development Mock'),
+                    ('otp_com_test', 'OTP.com Test'),
+                    ('otp_com_live', 'OTP.com Live'),
+                    ('twofactor', '2Factor'),
+                    ('msg91', 'MSG91'),
+                ],
+                default='msg91',
+                max_length=20,
+            ),
+        ),
+    ]
